@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def connect_db():
     """连接目标数据库"""
-    return pymysql.connect(**TARGET_DB_CONFIG, cursorclass=pymysql.cursors.DictCursor)
+    return pymysql.connect(**TARGET_DB_CONFIG, cursorclass=pymysql.cursors.DictCursor, ssl_disabled=True)
 
 def execute_query_with_timing(cursor, sql, params=None, description=""):
     """执行查询并记录时间"""

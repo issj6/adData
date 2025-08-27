@@ -28,7 +28,7 @@ wait_for_database() {
     
     # 最多等待60秒
     for i in {1..60}; do
-        if mysql -h "$TARGET_DB_HOST" -P "$TARGET_DB_PORT" -u "$TARGET_DB_USER" -p"$TARGET_DB_PASSWORD" -e "SELECT 1;" &> /dev/null; then
+        if mysql -h "$TARGET_DB_HOST" -P "$TARGET_DB_PORT" -u "$TARGET_DB_USER" -p"$TARGET_DB_PASSWORD" --ssl-mode=DISABLED -e "SELECT 1;" &> /dev/null; then
             log_success "数据库连接成功"
             return 0
         fi
@@ -43,7 +43,7 @@ wait_for_database() {
 # 检查表是否存在
 check_table_exists() {
     local table_name=$1
-    mysql -h "$TARGET_DB_HOST" -P "$TARGET_DB_PORT" -u "$TARGET_DB_USER" -p"$TARGET_DB_PASSWORD" "$TARGET_DB_DATABASE" \
+    mysql -h "$TARGET_DB_HOST" -P "$TARGET_DB_PORT" -u "$TARGET_DB_USER" -p"$TARGET_DB_PASSWORD" --ssl-mode=DISABLED "$TARGET_DB_DATABASE" \
         -e "SELECT 1 FROM $table_name LIMIT 1;" &> /dev/null
 }
 
@@ -59,7 +59,7 @@ init_database() {
     
     # 创建数据库（如果不存在）
     log_info "创建数据库 $TARGET_DB_DATABASE..."
-    mysql -h "$TARGET_DB_HOST" -P "$TARGET_DB_PORT" -u "$TARGET_DB_USER" -p"$TARGET_DB_PASSWORD" \
+    mysql -h "$TARGET_DB_HOST" -P "$TARGET_DB_PORT" -u "$TARGET_DB_USER" -p"$TARGET_DB_PASSWORD" --ssl-mode=DISABLED \
         -e "CREATE DATABASE IF NOT EXISTS $TARGET_DB_DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" || {
         log_warning "创建数据库失败，可能已存在"
     }
@@ -68,7 +68,7 @@ init_database() {
     if ! check_table_exists "ad_stats_daily"; then
         log_info "创建聚合数据表 ad_stats_daily..."
         if [ -f "/app/create_ad_stats_table.sql" ]; then
-            mysql -h "$TARGET_DB_HOST" -P "$TARGET_DB_PORT" -u "$TARGET_DB_USER" -p"$TARGET_DB_PASSWORD" "$TARGET_DB_DATABASE" < /app/create_ad_stats_table.sql
+            mysql -h "$TARGET_DB_HOST" -P "$TARGET_DB_PORT" -u "$TARGET_DB_USER" -p"$TARGET_DB_PASSWORD" --ssl-mode=DISABLED "$TARGET_DB_DATABASE" < /app/create_ad_stats_table.sql
             log_success "聚合数据表创建成功"
         else
             log_error "SQL文件不存在: create_ad_stats_table.sql"
@@ -81,7 +81,7 @@ init_database() {
     if ! check_table_exists "ad_name_map"; then
         log_info "创建名称映射表 ad_name_map..."
         if [ -f "/app/create_ad_name_map.sql" ]; then
-            mysql -h "$TARGET_DB_HOST" -P "$TARGET_DB_PORT" -u "$TARGET_DB_USER" -p"$TARGET_DB_PASSWORD" "$TARGET_DB_DATABASE" < /app/create_ad_name_map.sql
+            mysql -h "$TARGET_DB_HOST" -P "$TARGET_DB_PORT" -u "$TARGET_DB_USER" -p"$TARGET_DB_PASSWORD" --ssl-mode=DISABLED "$TARGET_DB_DATABASE" < /app/create_ad_name_map.sql
             log_success "名称映射表创建成功"
         else
             log_error "SQL文件不存在: create_ad_name_map.sql"

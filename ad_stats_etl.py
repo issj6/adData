@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 def connect_database(config):
     """连接数据库"""
-    return pymysql.connect(**config, cursorclass=pymysql.cursors.DictCursor)
+    return pymysql.connect(**config, cursorclass=pymysql.cursors.DictCursor, ssl_disabled=True)
 
 def process_daily_aggregation(target_date: str, rollback_days: int = 7):
     """

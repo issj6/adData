@@ -39,6 +39,7 @@ def get_db_connection():
         connect_timeout=3,
         read_timeout=5,
         write_timeout=5,
+        ssl_disabled=True
     )
 
 def load_ad_mapping():
