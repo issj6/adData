@@ -11,15 +11,17 @@ CREATE TABLE ad_stats_daily (
     ad_id varchar(128) DEFAULT NULL COMMENT '广告标识',
     channel_id varchar(64) DEFAULT NULL COMMENT '渠道标识',
     os varchar(16) DEFAULT NULL COMMENT '操作系统',
+    is_callback_sent tinyint(1) DEFAULT NULL COMMENT '回调发送状态(0:未发送, 1:已发送, 2:扣量)',
     callback_event_type varchar(64) DEFAULT NULL COMMENT '回调事件类型',
     request_count bigint NOT NULL DEFAULT 0 COMMENT '请求总数（该点击日的请求数）',
     callback_count bigint NOT NULL DEFAULT 0 COMMENT '回调总数（该点击日对应的已回调数）',
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     
-    UNIQUE KEY uk_daily_stats (date_day, up_id, ds_id, ad_id, channel_id, os, callback_event_type) COMMENT '唯一约束',
+    UNIQUE KEY uk_daily_stats (date_day, up_id, ds_id, ad_id, channel_id, os, is_callback_sent, callback_event_type) COMMENT '唯一约束',
     KEY idx_day_ad (date_day, ad_id) COMMENT '按日期+广告查询',
     KEY idx_day_ds_channel (date_day, ds_id, channel_id) COMMENT '按日期+下游+渠道查询',
-    KEY idx_day_callback_type (date_day, callback_event_type) COMMENT '按日期+回调类型查询'
+    KEY idx_day_callback_type (date_day, callback_event_type) COMMENT '按日期+回调类型查询',
+    KEY idx_callback_sent (is_callback_sent) COMMENT '按回调状态查询'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='日级广告统计表（按点击日归因）';
 
 -- ===============================================================
