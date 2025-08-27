@@ -1,0 +1,48 @@
+ * Serving Flask app 'app'
+ * Debug mode: off
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://198.18.0.1:8080
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:07:38] "GET /api/data?start_date=2025-08-26&end_date=2025-08-26&ad_id=67576&is_callback_sent=2&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:08:12] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:08:12] "GET /static/css/style.css?v=1756289249 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:08:12] "GET /static/js/main.js?v=1756289249 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:08:12] "GET /api/filter-options HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:08:12] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:08:21] "GET /api/data?start_date=2025-08-26&end_date=2025-08-26&ad_id=67576&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:08:23] "GET /api/data?start_date=2025-08-26&end_date=2025-08-26&ad_id=67576&is_callback_sent=2&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:09:50] "GET /api/data?start_date=2025-08-27&end_date=2025-08-26&ad_id=67576&is_callback_sent=2&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:09:53] "GET /api/data?start_date=2025-08-26&end_date=2025-08-26&ad_id=67576&is_callback_sent=2&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:20:41] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:20:44] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&up_id=duokaiyou&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:20:48] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:20:50] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&up_id=adapi&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:20:56] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:21] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&ds_id=ow&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:24] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:25] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:25] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:26] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:31] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&channel_id=ch1&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:31] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&channel_id=ch1&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:33] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&channel_id=owch1&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:36] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&channel_id=owch1&up_id=adapi&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:36] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:38] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&up_id=duokaiyou&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 18:21:39] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:15] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:15] "GET /static/css/style.css?v=1756289249 HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:15] "GET /static/js/main.js?v=1756289249 HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:16] "GET /api/filter-options HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:16] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:17] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:53] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:53] "[36mGET /static/css/style.css?v=1756289249 HTTP/1.1[0m" 304 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:53] "[36mGET /static/js/main.js?v=1756289249 HTTP/1.1[0m" 304 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:53] "GET /api/filter-options HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:53] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:26:01] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&is_callback_sent=2&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:26:26] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&is_callback_sent=1&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:26:36] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -

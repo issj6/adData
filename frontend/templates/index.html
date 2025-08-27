@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>广告数据统计面板</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=config['STATIC_VERSION']) }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        
+
+        <!-- 筛选器区域 -->
+        <section class="filters-section">
+            <div class="filters-container">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="start_date">开始日期:</label>
+                        <input type="date" id="start_date" class="form-control">
+                    </div>
+                    <div class="filter-group">
+                        <label for="end_date">结束日期:</label>
+                        <input type="date" id="end_date" class="form-control">
+                    </div>
+                    <div class="filter-group">
+                        <label for="ds_id">下游标识:</label>
+                        <select id="ds_id" class="form-control">
+                            <option value="all">全部</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="ad_id">广告ID:</label>
+                        <select id="ad_id" class="form-control">
+                            <option value="all">全部</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="channel_id">渠道标识:</label>
+                        <select id="channel_id" class="form-control">
+                            <option value="all">全部</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="up_id">上游标识:</label>
+                        <select id="up_id" class="form-control">
+                            <option value="all">全部</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="is_callback_sent">数据类型:</label>
+                        <select id="is_callback_sent" class="form-control">
+                            <option value="all">全部</option>
+                            <option value="1">已发送回调</option>
+                            <option value="2">扣量数据</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="filter-actions">
+                    <button id="query-btn" class="btn btn-success">
+                        <i class="fas fa-search"></i> 查询
+                    </button>
+                    <button id="reset-btn" class="btn btn-secondary">
+                        <i class="fas fa-undo"></i> 重置
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 数据表格区域（上移到筛选器下方） -->
+        <section class="data-section">
+            <div class="table-container">
+                <div class="table-wrapper">
+                    <div id="loading" class="loading" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                    </div>
+                    <table id="data-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">日期</th>
+                                <th rowspan="2">上游标识</th>
+                                <th rowspan="2">下游标识</th>
+                                <th rowspan="2">广告ID</th>
+                                <th rowspan="2">广告名</th>
+                                <th rowspan="2">渠道标识</th>
+                                <th rowspan="2">请求数量</th>
+                                <th colspan="4">回调数量</th>
+                                <th rowspan="2">回调率(%)</th>
+                                <th rowspan="2">更新时间</th>
+                            </tr>
+                            <tr>
+                                <th>激活</th>
+                                <th>注册</th>
+                                <th>付费</th>
+                                <th>总计</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 通过JavaScript动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="table-footer">
+                <div id="data-count" class="data-count">共 0 条数据</div>
+                <div class="table-info">
+                    <i class="fas fa-info-circle"></i> 
+                    最多显示1000条记录，如需查看更多数据请缩小筛选范围
+                </div>
+            </div>
+        </section>
+
+
+
+    </div>
+
+    <!-- 错误提示模态框 -->
+    <div id="error-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> 错误</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="error-message"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js', v=config['STATIC_VERSION']) }}"></script>
+</body>
+</html>
+

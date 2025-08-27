@@ -71,6 +71,7 @@ def process_daily_aggregation(target_date: str, rollback_days: int = 7):
                 ad_id,
                 channel_id,
                 os,
+                is_callback_sent,
                 callback_event_type,
                 COUNT(*) as request_count,
                 SUM(CASE WHEN is_callback_sent = 1 THEN 1 ELSE 0 END) as callback_count
@@ -83,8 +84,9 @@ def process_daily_aggregation(target_date: str, rollback_days: int = 7):
                 ad_id,
                 channel_id,
                 os,
+                is_callback_sent,
                 callback_event_type
-            ORDER BY date_day, ds_id, ad_id
+            ORDER BY date_day, ds_id, ad_id, is_callback_sent
         """
         
         logger.info("📊 开始从源表聚合数据...")
@@ -100,8 +102,8 @@ def process_daily_aggregation(target_date: str, rollback_days: int = 7):
         # 批量插入聚合数据
         insert_sql = """
             INSERT INTO ad_stats_daily 
-            (date_day, up_id, ds_id, ad_id, channel_id, os, callback_event_type, request_count, callback_count)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (date_day, up_id, ds_id, ad_id, channel_id, os, is_callback_sent, callback_event_type, request_count, callback_count)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         batch_data = []
@@ -113,6 +115,7 @@ def process_daily_aggregation(target_date: str, rollback_days: int = 7):
                 row['ad_id'],
                 row['channel_id'],
                 row['os'],
+                row['is_callback_sent'],
                 row['callback_event_type'],
                 row['request_count'],
                 row['callback_count']
