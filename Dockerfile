@@ -1,0 +1,50 @@
+# 广告数据聚合系统 Dockerfile
+FROM python:3.11-slim
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    cron \
+    default-mysql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制requirements文件
+COPY requirements.txt .
+
+# 安装Python依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制应用代码
+COPY . .
+
+# 创建日志目录
+RUN mkdir -p /app/logs
+
+# 设置脚本执行权限
+RUN chmod +x /app/run_daily_etl.sh
+
+# 设置定时任务
+RUN echo "0 3 * * * /app/run_daily_etl.sh" | crontab -
+
+# 创建启动脚本
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+# 启动cron服务\n\
+service cron start\n\
+\n\
+# 启动Flask应用\n\
+cd /app/frontend\n\
+exec python app.py' > /app/start.sh && chmod +x /app/start.sh
+
+# 暴露端口
+EXPOSE 8080
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/api/filter-options || exit 1
+
+# 启动应用
+CMD ["/app/start.sh"]

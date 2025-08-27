@@ -46,3 +46,8 @@ INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:25:53] "GET /api/data?start_date=
 INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:26:01] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&is_callback_sent=2&group_by=ad_id&order=DESC HTTP/1.1" 200 -
 INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:26:26] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&is_callback_sent=1&group_by=ad_id&order=DESC HTTP/1.1" 200 -
 INFO:werkzeug:192.168.31.1 - - [27/Aug/2025 18:26:36] "GET /api/data?start_date=2025-08-21&end_date=2025-08-26&group_by=ad_id&order=DESC HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 20:05:22] "GET /api/filter-options HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 20:05:32] "GET /api/filter-options HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 20:05:46] "GET /api/filter-options HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 20:05:56] "GET /api/filter-options HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Aug/2025 20:06:12] "GET /api/filter-options HTTP/1.1" 200 -

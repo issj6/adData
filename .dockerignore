@@ -1,0 +1,50 @@
+# Git相关
+.git
+.gitignore
+
+# Python相关
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache
+
+# 虚拟环境
+venv
+env
+ENV
+
+# IDE相关
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# 开发相关
+.env
+*.pid
+*.log
+
+# Docker相关
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 日志文件
+logs/
+*.log
+
+# 临时文件
+tmp/
+temp/

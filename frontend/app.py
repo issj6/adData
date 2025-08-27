@@ -42,13 +42,28 @@ def get_db_connection():
     )
 
 def load_ad_mapping():
-    """加载广告ID映射关系"""
+    """从数据库加载广告ID映射关系"""
     try:
-        mapping_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ad_mapping.json')
-        with open(mapping_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 查询启用的映射关系
+        cursor.execute("SELECT ad_id, display_name FROM ad_name_map WHERE is_active = 1")
+        rows = cursor.fetchall()
+        
+        # 构造映射字典
+        mapping = {}
+        for row in rows:
+            mapping[row['ad_id']] = row['display_name']
+        
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"从数据库加载广告映射: {len(mapping)} 个")
+        return mapping
+        
     except Exception as e:
-        logger.error(f"加载广告映射失败: {e}")
+        logger.error(f"从数据库加载广告映射失败: {e}")
         return {}
 
 @app.route('/')
@@ -365,5 +380,11 @@ def get_callback_distribution():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
+    # 从环境变量获取配置
+    import os
+    host = os.getenv('FLASK_HOST', '0.0.0.0')
+    port = int(os.getenv('FLASK_PORT', '8080'))
+    debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+    
     # 生产化的开发运行参数：关闭自动重载，开启多线程以避免阻塞
-    app.run(debug=False, host='0.0.0.0', port=8080, threaded=True)
+    app.run(debug=debug, host=host, port=port, threaded=True)
