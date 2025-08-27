@@ -42,10 +42,7 @@ CREATE TABLE ad_stats_daily (
 
 ```bash
 # 一键部署
-./deploy.sh deploy
-
-# 或使用 Makefile
-make deploy
+./deploy.sh
 ```
 
 ### 方式二：手动部署
@@ -126,10 +123,10 @@ ORDER BY date_day DESC;
 Docker部署会自动配置定时任务（每天凌晨3点执行）：
 ```bash
 # 查看定时任务日志
-make etl-logs
+docker compose exec ad-data-app tail -f /app/logs/daily_etl_$(date +%Y%m%d).log
 
 # 手动执行ETL
-make etl
+docker compose exec ad-data-app /app/run_daily_etl.sh
 ```
 
 ### 手动配置定时任务
@@ -228,59 +225,31 @@ LIMIT 7;"
 
 ## 🐳 Docker部署
 
-### 部署脚本使用
-
-项目提供了完整的部署脚本，支持一键部署：
+### 简化部署使用
 
 ```bash
-# 查看帮助
-./deploy.sh help
+# 首次使用步骤：
+./deploy.sh       # 1. 会自动创建 .env 文件
+vim .env          # 2. 编辑数据库配置
+./deploy.sh       # 3. 重新部署
 
-# 完整部署（推荐首次使用）
-./deploy.sh deploy
-
-# 或使用 Makefile
-make deploy
+# 日常使用：
+./deploy.sh       # 部署/启动服务
+./deploy.sh stop  # 停止服务
 ```
 
-### 常用命令
+### 常用Docker命令
 
 ```bash
-# 服务管理
-make start      # 启动服务  
-make stop       # 停止服务
-make restart    # 重启服务
-make status     # 查看状态
+# 查看日志
+docker compose logs -f
 
-# 开发调试
-make logs       # 查看日志
-make health     # 健康检查
-make shell      # 进入容器
+# 进入容器
+docker compose exec ad-data-app bash
 
-# ETL管理
-make etl        # 手动执行ETL
-make etl-logs   # 查看ETL日志
-
-# 运维操作
-make backup     # 备份数据
-make update     # 更新部署
-make clean      # 清理资源
+# 手动执行ETL
+docker compose exec ad-data-app /app/run_daily_etl.sh
 ```
-
-### 环境配置
-
-```bash
-# 1. 复制环境变量模板
-cp env.example .env
-
-# 2. 修改数据库配置
-vim .env
-
-# 3. 启动部署
-make deploy
-```
-
-详细的Docker部署说明请参考：[DOCKER_DEPLOY.md](DOCKER_DEPLOY.md)
 
 ---
 
@@ -288,4 +257,4 @@ make deploy
 
 **核心成果**: 🚀 **单表设计，毫秒级查询，完美支持用户需求**
 
-**部署方式**: 🐳 **一键Docker部署，包含定时任务和完整监控**
+**部署方式**: 🐳 **简化Docker部署，包含定时任务**
