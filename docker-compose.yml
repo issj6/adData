@@ -30,6 +30,9 @@ services:
     volumes:
       # 挂载日志目录到宿主机
       - ./logs:/app/logs
+      # 挂载归档目录到宿主机指定位置
+      - /data/ad/archives:/app/data_archive/archives
+      - /data/ad/logs:/app/data_archive/logs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/filter-options"]
       interval: 30s

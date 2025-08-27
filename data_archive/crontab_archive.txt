@@ -1,0 +1,12 @@
+# 数据归档定时任务配置
+# 每日凌晨1点执行数据归档
+
+# 分 时 日 月 周   命令
+0 1 * * * /path/to/adData/data_archive/archive_old_data.sh
+
+# 安装说明：
+# 1. 替换 /path/to/adData 为实际的项目路径
+# 2. 执行：crontab crontab_archive.txt
+#
+# 例如：
+# 0 1 * * * /Users/yang/PycharmProjects/adData/data_archive/archive_old_data.sh

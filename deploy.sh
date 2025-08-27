@@ -53,6 +53,34 @@ check_env() {
     fi
 }
 
+# 检查并创建归档目录
+check_archive_directories() {
+    log_info "检查归档目录..."
+    
+    # 检查归档目录是否存在
+    if [ ! -d "/data/ad/archives" ] || [ ! -d "/data/ad/logs" ]; then
+        log_info "创建归档目录..."
+        
+        # 尝试创建目录
+        if sudo mkdir -p /data/ad/archives /data/ad/logs 2>/dev/null; then
+            # 设置权限让Docker容器可以写入
+            if sudo chown -R 1000:1000 /data/ad 2>/dev/null; then
+                log_success "归档目录创建成功: /data/ad/"
+            else
+                log_error "无法设置归档目录权限，请手动执行: sudo chown -R 1000:1000 /data/ad"
+                exit 1
+            fi
+        else
+            log_error "无法创建归档目录，请手动执行:"
+            log_error "  sudo mkdir -p /data/ad/archives /data/ad/logs"
+            log_error "  sudo chown -R 1000:1000 /data/ad"
+            exit 1
+        fi
+    else
+        log_success "归档目录已存在: /data/ad/"
+    fi
+}
+
 # 部署服务
 deploy() {
     log_info "开始部署广告数据聚合系统..."
@@ -60,6 +88,7 @@ deploy() {
     # 检查依赖
     check_docker
     check_env
+    check_archive_directories
     
     # 构建并启动服务
     log_info "构建Docker镜像..."
@@ -83,6 +112,10 @@ deploy() {
         log_info "常用命令:"
         echo "  查看日志: docker compose logs -f"
         echo "  停止服务: ./deploy.sh stop"
+        echo ""
+        log_info "归档目录:"
+        echo "  CSV文件: /data/ad/archives/"
+        echo "  日志文件: /data/ad/logs/"
     else
         log_error "服务启动失败，查看日志："
         docker compose logs

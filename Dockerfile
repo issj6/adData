@@ -23,10 +23,13 @@ COPY . .
 RUN mkdir -p /app/logs
 
 # 设置脚本执行权限
-RUN chmod +x /app/run_daily_etl.sh /app/init_database.sh
+RUN chmod +x /app/run_daily_etl.sh /app/init_database.sh /app/data_archive/archive_old_data.sh
 
 # 设置定时任务
-RUN echo "0 3 * * * /app/run_daily_etl.sh" | crontab -
+RUN echo "0 1 * * * /app/data_archive/archive_old_data.sh" > /tmp/crontab && \
+    echo "0 3 * * * /app/run_daily_etl.sh" >> /tmp/crontab && \
+    crontab /tmp/crontab && \
+    rm /tmp/crontab
 
 # 创建启动脚本
 RUN echo '#!/bin/bash\n\
