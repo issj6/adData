@@ -8,12 +8,17 @@ WORKDIR /app
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
     sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
 
-# 安装系统依赖
+# 安装系统依赖和时区数据
 RUN apt-get update && apt-get install -y \
     cron \
     default-mysql-client \
     curl \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
+
+# 设置时区为上海
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # 复制requirements文件
 COPY requirements.txt .

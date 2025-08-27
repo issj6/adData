@@ -8,6 +8,9 @@ services:
     ports:
       - "3300:8080"
     environment:
+      # 时区设置
+      TZ: Asia/Shanghai
+      
       # 源数据库配置（生产环境请修改）
       SOURCE_DB_HOST: ${SOURCE_DB_HOST:-222.186.41.7}
       SOURCE_DB_PORT: ${SOURCE_DB_PORT:-3316}
@@ -33,6 +36,9 @@ services:
       # 挂载归档目录到宿主机指定位置
       - /data/ad/archives:/app/data_archive/archives
       - /data/ad/logs:/app/data_archive/logs
+      # 挂载时区文件确保时区设置正确
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/filter-options"]
       interval: 30s
