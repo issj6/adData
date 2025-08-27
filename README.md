@@ -229,13 +229,18 @@ LIMIT 7;"
 
 ```bash
 # 首次使用步骤：
-./deploy.sh       # 1. 会自动创建 .env 文件
-vim .env          # 2. 编辑数据库配置
-./deploy.sh       # 3. 重新部署
+./deploy.sh           # 1. 会自动创建 .env 文件
+vim .env              # 2. 编辑数据库配置
+./deploy.sh           # 3. 部署系统（自动创建表）
+./deploy.sh init-data # 4. 执行首次数据聚合
 
 # 日常使用：
 ./deploy.sh       # 部署/启动服务
 ./deploy.sh stop  # 停止服务
+
+# 访问地址：
+# Web界面: http://localhost:3300
+# API接口: http://localhost:3300/api/filter-options
 ```
 
 ### 常用Docker命令

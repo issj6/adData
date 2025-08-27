@@ -6,7 +6,7 @@ services:
     container_name: ad-data-aggregator
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "3300:8080"
     environment:
       # 源数据库配置（生产环境请修改）
       SOURCE_DB_HOST: ${SOURCE_DB_HOST:-222.186.41.7}

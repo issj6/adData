@@ -77,8 +77,8 @@ deploy() {
         log_success "部署成功！"
         echo ""
         log_info "访问地址:"
-        echo "  Web界面: http://localhost:8080"
-        echo "  API接口: http://localhost:8080/api/filter-options"
+        echo "  Web界面: http://localhost:3300"
+        echo "  API接口: http://localhost:3300/api/filter-options"
         echo ""
         log_info "常用命令:"
         echo "  查看日志: docker compose logs -f"
@@ -97,6 +97,29 @@ stop() {
     log_success "服务已停止"
 }
 
+# 执行首次数据聚合
+init_data() {
+    log_info "执行首次数据聚合..."
+    
+    # 检查容器是否运行
+    if ! docker compose ps | grep -q "Up"; then
+        log_error "服务未运行，请先执行 ./deploy.sh 启动服务"
+        exit 1
+    fi
+    
+    # 执行ETL任务
+    log_info "开始数据聚合，这可能需要几分钟时间..."
+    if docker compose exec ad-data-app /app/run_daily_etl.sh; then
+        log_success "首次数据聚合完成！"
+        log_info "现在可以访问 Web界面查看数据"
+        log_info "Web界面: http://localhost:3300"
+    else
+        log_error "数据聚合失败，请检查日志："
+        log_info "查看日志: docker compose logs -f ad-data-app"
+        exit 1
+    fi
+}
+
 # 显示帮助
 show_help() {
     echo "广告数据聚合系统 - 部署脚本"
@@ -106,12 +129,14 @@ show_help() {
     echo "命令:"
     echo "  (无参数)    部署系统"
     echo "  stop        停止服务"
+    echo "  init-data   执行首次数据聚合"
     echo "  help        显示帮助"
     echo ""
     echo "首次使用步骤:"
-    echo "  1. ./deploy.sh       # 会自动创建 .env 文件"
-    echo "  2. vim .env          # 编辑数据库配置"
-    echo "  3. ./deploy.sh       # 重新部署"
+    echo "  1. ./deploy.sh           # 会自动创建 .env 文件"
+    echo "  2. vim .env              # 编辑数据库配置"
+    echo "  3. ./deploy.sh           # 部署系统（自动创建表）"
+    echo "  4. ./deploy.sh init-data # 执行首次数据聚合"
     echo ""
 }
 
@@ -120,6 +145,9 @@ main() {
     case "${1:-deploy}" in
         "stop")
             stop
+            ;;
+        "init-data")
+            init_data
             ;;
         "help")
             show_help
