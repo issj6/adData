@@ -291,13 +291,15 @@ section h2 i {
     width: 100%;
     border-collapse: collapse;
     background: white;
+    border: 1px solid #c5d0db; /* 外边框（更深色以增强对比） */
 }
 
 .data-table th,
 .data-table td {
     padding: 12px 15px;
     text-align: left;
-    border-bottom: 1px solid #e9ecef;
+    border: 1px solid #c5d0db; /* 单元格完整网格线（横竖）更明显 */
+    font-size: 14px; /* 统一表格字体大小 */
 }
 
 .data-table th {
@@ -310,7 +312,7 @@ section h2 i {
 }
 
 .data-table tr:hover {
-    background: #e3f2fd !important;
+    background: #D2E8FB !important; /* 比 #E6F2FC 更深一点 */
 }
 
 .data-table .number {
@@ -327,7 +329,7 @@ section h2 i {
 
 /* 日期分组背景色 */
 .data-table tr.date-group-odd {
-    background: #e9ecef;
+    background: #E6F2FC; /* 交替背景色 */
 }
 
 .data-table tr.date-group-even {
