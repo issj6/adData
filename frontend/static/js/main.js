@@ -229,7 +229,7 @@ class AdDataDashboard {
         tbody.innerHTML = '';
         
         if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="12" class="no-data">暂无数据</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="16" class="no-data">暂无数据</td></tr>';
             document.getElementById('data-count').textContent = '共 0 条数据';
             return;
         }
