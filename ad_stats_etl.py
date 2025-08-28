@@ -74,6 +74,8 @@ def process_daily_aggregation(target_date: str, rollback_days: int = 7):
                 is_callback_sent,
                 callback_event_type,
                 COUNT(*) as request_count,
+                SUM(CASE WHEN track_status = 1 THEN 1 ELSE 0 END) as request_success_count,
+                SUM(CASE WHEN track_status = 2 THEN 1 ELSE 0 END) as request_failed_count,
                 SUM(CASE WHEN is_callback_sent = 1 THEN 1 ELSE 0 END) as callback_count
             FROM {SOURCE_TABLE_NAME}
             WHERE DATE(track_time) >= %s AND DATE(track_time) <= %s
@@ -102,8 +104,8 @@ def process_daily_aggregation(target_date: str, rollback_days: int = 7):
         # 批量插入聚合数据
         insert_sql = """
             INSERT INTO ad_stats_daily 
-            (date_day, up_id, ds_id, ad_id, channel_id, os, is_callback_sent, callback_event_type, request_count, callback_count)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (date_day, up_id, ds_id, ad_id, channel_id, os, is_callback_sent, callback_event_type, request_count, request_success_count, request_failed_count, callback_count)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         batch_data = []
@@ -118,6 +120,8 @@ def process_daily_aggregation(target_date: str, rollback_days: int = 7):
                 row['is_callback_sent'],
                 row['callback_event_type'],
                 row['request_count'],
+                row.get('request_success_count', 0),
+                row.get('request_failed_count', 0),
                 row['callback_count']
             ))
         

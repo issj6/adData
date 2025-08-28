@@ -11,9 +11,11 @@ CREATE TABLE ad_stats_daily (
     ad_id varchar(128) DEFAULT NULL COMMENT '广告标识',
     channel_id varchar(64) DEFAULT NULL COMMENT '渠道标识',
     os varchar(16) DEFAULT NULL COMMENT '操作系统',
-    is_callback_sent tinyint(1) DEFAULT NULL COMMENT '回调发送状态(0:未发送, 1:已发送, 2:扣量)',
+    is_callback_sent tinyint(1) DEFAULT NULL COMMENT '回调发送状态(0:未发送, 1:已发送, 2:扣量, 3:回传失败)',
     callback_event_type varchar(64) DEFAULT NULL COMMENT '回调事件类型',
     request_count bigint NOT NULL DEFAULT 0 COMMENT '请求总数（该点击日的请求数）',
+    request_success_count bigint NOT NULL DEFAULT 0 COMMENT '请求发送成功数(track_status=1)',
+    request_failed_count bigint NOT NULL DEFAULT 0 COMMENT '请求发送失败数(track_status=2)',
     callback_count bigint NOT NULL DEFAULT 0 COMMENT '回调总数（该点击日对应的已回调数）',
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     

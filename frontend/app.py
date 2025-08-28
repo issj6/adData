@@ -194,10 +194,13 @@ def get_data():
                     MAX(channel_id) AS channel_id,
                     MAX(is_callback_sent) AS is_callback_sent,
                     SUM(request_count) AS request_count,
+                    SUM(request_success_count) AS request_success_count,
+                    SUM(request_failed_count) AS request_failed_count,
                     SUM(CASE WHEN callback_event_type IN ('ACTIVATED', 'activate') THEN {callback_metric} ELSE 0 END) AS activated_count,
                     SUM(CASE WHEN callback_event_type IN ('REGISTERED', 'reg') THEN {callback_metric} ELSE 0 END) AS registered_count,
                     SUM(CASE WHEN callback_event_type = 'PAID' THEN {callback_metric} ELSE 0 END) AS paid_count,
                     SUM(CASE WHEN callback_event_type IS NOT NULL THEN {callback_metric} ELSE 0 END) AS total_callback_count,
+                    SUM(CASE WHEN is_callback_sent = 3 THEN request_count ELSE 0 END) AS callback_failed_count,
                     ROUND(SUM(callback_count) * 100.0 / NULLIF(SUM(request_count), 0), 2) AS callback_rate,
                     MAX(updated_at) AS updated_at
                 FROM ad_stats_daily
@@ -218,10 +221,13 @@ def get_data():
                     channel_id,
                     is_callback_sent,
                     request_count,
+                    request_success_count,
+                    request_failed_count,
                     CASE WHEN callback_event_type IN ('ACTIVATED', 'activate') THEN {callback_metric} ELSE 0 END AS activated_count,
                     CASE WHEN callback_event_type IN ('REGISTERED', 'reg') THEN {callback_metric} ELSE 0 END AS registered_count,
                     CASE WHEN callback_event_type = 'PAID' THEN {callback_metric} ELSE 0 END AS paid_count,
                     {callback_metric} AS total_callback_count,
+                    CASE WHEN is_callback_sent = 3 THEN request_count ELSE 0 END AS callback_failed_count,
                     ROUND(CASE 
                         WHEN request_count > 0 
                         THEN callback_count * 100.0 / request_count 

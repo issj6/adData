@@ -243,6 +243,9 @@ class AdDataDashboard {
         let totalRegistered = 0;
         let totalPaid = 0;
         let totalCallbacks = 0;
+        let totalRequestSuccess = 0;
+        let totalRequestFailed = 0;
+        let totalCallbackFailed = 0;
         
         data.forEach(row => {
             // 检测日期变化，交替背景色
@@ -253,10 +256,13 @@ class AdDataDashboard {
             
             // 累计合计数据
             totalRequests += parseInt(row.request_count || 0);
+            totalRequestSuccess += parseInt(row.request_success_count || 0);
+            totalRequestFailed += parseInt(row.request_failed_count || 0);
             totalActivated += parseInt(row.activated_count || 0);
             totalRegistered += parseInt(row.registered_count || 0);
             totalPaid += parseInt(row.paid_count || 0);
             totalCallbacks += parseInt(row.total_callback_count || 0);
+            totalCallbackFailed += parseInt(row.callback_failed_count || 0);
             
             const tr = document.createElement('tr');
             // 奇数日期组使用浅灰背景，偶数日期组无背景
@@ -271,10 +277,13 @@ class AdDataDashboard {
                 <td>${this.getAdName(row.ad_id)}</td>
                 <td>${row.channel_id || '-'}</td>
                 <td class="number">${this.formatNumber(row.request_count)}</td>
+                <td class="number">${this.formatNumber(row.request_success_count || 0)}</td>
+                <td class="number">${this.formatNumber(row.request_failed_count || 0)}</td>
                 <td class="number">${this.formatNumber(row.activated_count || 0)}</td>
                 <td class="number">${this.formatNumber(row.registered_count || 0)}</td>
                 <td class="number">${this.formatNumber(row.paid_count || 0)}</td>
                 <td class="number">${this.formatNumber(row.total_callback_count || 0)}</td>
+                <td class="number">${this.formatNumber(row.callback_failed_count || 0)}</td>
                 <td class="number">${row.callback_rate}%</td>
                 <td>${row.updated_at || '-'}</td>
             `;
@@ -295,10 +304,13 @@ class AdDataDashboard {
                 <td>-</td>
                 <td>-</td>
                 <td class="number"><strong>${this.formatNumber(totalRequests)}</strong></td>
+                <td class="number"><strong>${this.formatNumber(totalRequestSuccess)}</strong></td>
+                <td class="number"><strong>${this.formatNumber(totalRequestFailed)}</strong></td>
                 <td class="number"><strong>${this.formatNumber(totalActivated)}</strong></td>
                 <td class="number"><strong>${this.formatNumber(totalRegistered)}</strong></td>
                 <td class="number"><strong>${this.formatNumber(totalPaid)}</strong></td>
                 <td class="number"><strong>${this.formatNumber(totalCallbacks)}</strong></td>
+                <td class="number"><strong>${this.formatNumber(totalCallbackFailed)}</strong></td>
                 <td class="number"><strong>${totalRate}%</strong></td>
                 <td>-</td>
             `;
