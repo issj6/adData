@@ -9,10 +9,27 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# 导入环境变量（如果存在.env文件）
-if [ -f "$PROJECT_ROOT/.env" ]; then
-    source "$PROJECT_ROOT/.env"
-fi
+# 环境变量优先：仅在缺失时从 .env 回填
+ENV_FILE="$PROJECT_ROOT/.env"
+load_if_unset() {
+    local var_name="$1"
+    local key="$1"
+    if [ -z "${!var_name}" ] && [ -f "$ENV_FILE" ]; then
+        local line
+        line=$(grep -E "^${key}=" "$ENV_FILE" | tail -n1 || true)
+        if [ -n "$line" ]; then
+            local value="${line#*=}"
+            value="$(printf '%s' "$value" | sed 's/[[:space:]]*$//')"
+            if [ -z "${!var_name}" ] && [ -n "$value" ]; then
+                export "$var_name=$value"
+            fi
+        fi
+    fi
+}
+
+for k in SOURCE_DB_HOST SOURCE_DB_PORT SOURCE_DB_USER SOURCE_DB_PASSWORD SOURCE_DB_DATABASE SOURCE_TABLE_NAME; do
+    load_if_unset "$k"
+done
 
 # 设置默认值
 SOURCE_DB_HOST=${SOURCE_DB_HOST:-"222.186.41.7"}
@@ -58,7 +75,7 @@ log_warning() {
 check_database_connection() {
     log_info "检查源数据库连接..."
     
-    if mysql -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+    if mysql --ssl-mode=DISABLED -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         -e "SELECT 1;" &> /dev/null; then
         log_success "数据库连接正常"
         return 0
@@ -77,7 +94,7 @@ check_archive_data() {
     log_info "归档日期cutoff: $ARCHIVE_DATE"
     
     # 查询要归档的数据量
-    RECORD_COUNT=$(mysql -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+    RECORD_COUNT=$(mysql --ssl-mode=DISABLED -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         "$SOURCE_DB_DATABASE" -N -e "
         SELECT COUNT(*) 
         FROM $SOURCE_TABLE_NAME 
@@ -100,7 +117,7 @@ export_data_to_csv() {
     log_info "开始导出数据到CSV文件: $csv_file"
     
     # 导出数据（包含表头）
-    mysql -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+    mysql --ssl-mode=DISABLED -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         "$SOURCE_DB_DATABASE" -e "
         SELECT *
         FROM $SOURCE_TABLE_NAME 
@@ -136,7 +153,7 @@ delete_archived_data() {
     log_info "开始删除已归档的数据..."
     
     # 执行删除操作
-    mysql -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+    mysql --ssl-mode=DISABLED -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         "$SOURCE_DB_DATABASE" -e "
         DELETE FROM $SOURCE_TABLE_NAME 
         WHERE DATE(track_time) < '$archive_date'
@@ -144,7 +161,7 @@ delete_archived_data() {
     
     if [ $? -eq 0 ]; then
         # 获取删除的行数
-        local deleted_count=$(mysql -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+        local deleted_count=$(mysql --ssl-mode=DISABLED -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
             "$SOURCE_DB_DATABASE" -e "SELECT ROW_COUNT();" -N 2>/dev/null || echo "未知")
         
         log_success "数据删除完成，删除了 $deleted_count 条记录"
