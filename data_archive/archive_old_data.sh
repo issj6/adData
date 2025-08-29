@@ -75,7 +75,7 @@ log_warning() {
 check_database_connection() {
     log_info "检查源数据库连接..."
     
-    if mysql --ssl-mode=DISABLED -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+    if mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         -e "SELECT 1;" &> /dev/null; then
         log_success "数据库连接正常"
         return 0
@@ -94,7 +94,7 @@ check_archive_data() {
     log_info "归档日期cutoff: $ARCHIVE_DATE"
     
     # 查询要归档的数据量
-    RECORD_COUNT=$(mysql --ssl-mode=DISABLED -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+    RECORD_COUNT=$(mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         "$SOURCE_DB_DATABASE" -N -e "
         SELECT COUNT(*) 
         FROM $SOURCE_TABLE_NAME 
@@ -117,7 +117,7 @@ export_data_to_csv() {
     log_info "开始导出数据到CSV文件: $csv_file"
     
     # 导出数据（包含表头）
-    mysql --ssl-mode=DISABLED -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+    mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         "$SOURCE_DB_DATABASE" -e "
         SELECT *
         FROM $SOURCE_TABLE_NAME 
@@ -153,7 +153,7 @@ delete_archived_data() {
     log_info "开始删除已归档的数据..."
     
     # 执行删除操作
-    mysql --ssl-mode=DISABLED -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+    mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         "$SOURCE_DB_DATABASE" -e "
         DELETE FROM $SOURCE_TABLE_NAME 
         WHERE DATE(track_time) < '$archive_date'
@@ -161,7 +161,7 @@ delete_archived_data() {
     
     if [ $? -eq 0 ]; then
         # 获取删除的行数
-        local deleted_count=$(mysql --ssl-mode=DISABLED -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+        local deleted_count=$(mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
             "$SOURCE_DB_DATABASE" -e "SELECT ROW_COUNT();" -N 2>/dev/null || echo "未知")
         
         log_success "数据删除完成，删除了 $deleted_count 条记录"
