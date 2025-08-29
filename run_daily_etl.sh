@@ -11,6 +11,9 @@ cd "$SCRIPT_DIR"
 LOG_FILE="$SCRIPT_DIR/logs/daily_etl_$(date '+%Y%m%d').log"
 mkdir -p "$SCRIPT_DIR/logs"
 
+# 确保在cron环境下也能找到python3
+export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+
 # 日志函数
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"

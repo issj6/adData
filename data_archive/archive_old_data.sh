@@ -22,6 +22,9 @@ SOURCE_DB_PASSWORD=${SOURCE_DB_PASSWORD:-"Yyy443556.0"}
 SOURCE_DB_DATABASE=${SOURCE_DB_DATABASE:-"ad_router"}
 SOURCE_TABLE_NAME=${SOURCE_TABLE_NAME:-"request_log"}
 
+# 确保在cron环境下能找到系统命令
+export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+
 # 创建归档目录
 ARCHIVE_DIR="$SCRIPT_DIR/archives"
 mkdir -p "$ARCHIVE_DIR"
