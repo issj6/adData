@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 数据归档脚本
-# 每日凌晨1点执行：导出30天前的数据为CSV并删除
+# 每日凌晨1点执行：导出14天前的数据为CSV并删除
 
 set -e
 
@@ -87,10 +87,10 @@ check_database_connection() {
 
 # 检查要归档的数据量
 check_archive_data() {
-    log_info "检查30天前的数据量..."
+    log_info "检查14天前的数据量..."
     
-    # 计算30天前的日期
-    ARCHIVE_DATE=$(date -d '30 days ago' '+%Y-%m-%d')
+    # 计算14天前的日期
+    ARCHIVE_DATE=$(date -d '14 days ago' '+%Y-%m-%d')
     log_info "归档日期cutoff: $ARCHIVE_DATE"
     
     # 查询要归档的数据量
@@ -224,7 +224,7 @@ main() {
     fi
     
     # 计算归档日期
-    ARCHIVE_DATE=$(date -d '30 days ago' '+%Y-%m-%d')
+    ARCHIVE_DATE=$(date -d '14 days ago' '+%Y-%m-%d')
     
     # 检查要归档的数据量
     RECORD_COUNT=$(check_archive_data)
