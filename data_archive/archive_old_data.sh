@@ -103,7 +103,7 @@ check_archive_data() {
         "$SOURCE_DB_DATABASE" -N -e "
         SELECT COUNT(*) 
         FROM $SOURCE_TABLE_NAME 
-        WHERE DATE(track_time) < '$archive_date'
+        WHERE track_time < '$archive_date 00:00:00'
     " 2>>"$LOG_FILE" || echo "0")
     
     log_info "找到 $RECORD_COUNT 条需要归档的记录"
@@ -123,12 +123,11 @@ export_data_to_csv() {
     log_info "开始导出数据到CSV文件: $csv_file"
     
     # 导出数据（包含表头）
-    mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+    mysql --quick --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         "$SOURCE_DB_DATABASE" -e "
         SELECT *
         FROM $SOURCE_TABLE_NAME 
-        WHERE DATE(track_time) < '$archive_date'
-        ORDER BY track_time
+        WHERE track_time < '$archive_date 00:00:00'
     " 2>>"$LOG_FILE" | sed 's/\t/,/g' > "$csv_file"
     
     if [ $? -eq 0 ] && [ -f "$csv_file" ]; then
@@ -154,8 +153,92 @@ export_data_to_csv() {
         return 0
     else
         log_error "数据导出失败"
+        log_warning "尝试启用分片导出模式以降低内存/临时文件压力"
+        # 回退到分片导出
+        CSV_FILE_CHUNKED=$(export_data_to_csv_chunked "$archive_date" "$record_count") || return 1
+        echo "$CSV_FILE_CHUNKED"
+        return 0
+    fi
+}
+
+# 分片导出，按天切分，首片保留表头，其余片去表头后追加
+export_data_to_csv_chunked() {
+    local archive_date=$1
+    local record_count=$2
+    local export_timestamp=$(date '+%Y%m%d_%H%M%S')
+    local csv_file="$ARCHIVE_DIR/archived_data_${export_timestamp}.csv"
+
+    log_info "开始分片导出（按天）到CSV文件: $csv_file"
+
+    # 计算最早起始日（仅限小于cutoff的数据）
+    local min_day
+    min_day=$(mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+        "$SOURCE_DB_DATABASE" -N -e "
+        SELECT LEFT(MIN(track_time),10)
+        FROM $SOURCE_TABLE_NAME
+        WHERE track_time < '$archive_date 00:00:00'
+    " 2>>"$LOG_FILE" | tr -d '\r') || true
+
+    if [ -z "$min_day" ] || ! [[ "$min_day" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        log_error "无法获取最早日期，分片导出终止"
         return 1
     fi
+
+    local cur_day="$min_day"
+    local header_written=0
+
+    while [ "$(date -d "$cur_day" +%s)" -lt "$(date -d "$archive_date" +%s)" ]; do
+        local next_day
+        next_day=$(date -d "$cur_day +1 day" '+%Y-%m-%d')
+
+        log_info "导出分片: $cur_day"
+        if [ "$header_written" -eq 0 ]; then
+            mysql --quick --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+                "$SOURCE_DB_DATABASE" -e "
+                SELECT *
+                FROM $SOURCE_TABLE_NAME
+                WHERE track_time >= '$cur_day 00:00:00' AND track_time < '$next_day 00:00:00'
+            " 2>>"$LOG_FILE" | sed 's/\t/,/g' > "$csv_file" || {
+                log_error "分片导出失败: $cur_day"
+                return 1
+            }
+            header_written=1
+        else
+            mysql --quick --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+                "$SOURCE_DB_DATABASE" -e "
+                SELECT *
+                FROM $SOURCE_TABLE_NAME
+                WHERE track_time >= '$cur_day 00:00:00' AND track_time < '$next_day 00:00:00'
+            " 2>>"$LOG_FILE" | sed 's/\t/,/g' | tail -n +2 >> "$csv_file" || {
+                log_error "分片导出失败: $cur_day"
+                return 1
+            }
+        fi
+
+        cur_day="$next_day"
+    done
+
+    if [ ! -f "$csv_file" ]; then
+        log_error "分片导出未生成文件"
+        return 1
+    fi
+
+    local total_lines=$(wc -l < "$csv_file")
+    if [ "$total_lines" -eq 0 ]; then
+        log_error "分片导出文件为空"
+        return 1
+    fi
+
+    local exported_lines=$(( total_lines - 1 ))
+    log_info "分片导出完成，合计: $exported_lines 条记录"
+
+    if [ "$exported_lines" -ne "$record_count" ]; then
+        log_error "分片导出行数($exported_lines)与预期($record_count)不一致，停止删除以保证安全"
+        return 1
+    fi
+
+    echo "$csv_file"
+    return 0
 }
 
 # 删除已归档的数据
@@ -169,7 +252,7 @@ delete_archived_data() {
     mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         "$SOURCE_DB_DATABASE" -e "
         DELETE FROM $SOURCE_TABLE_NAME 
-        WHERE DATE(track_time) < '$archive_date'
+        WHERE track_time < '$archive_date 00:00:00'
     " 2>>"$LOG_FILE"
     
     if [ $? -eq 0 ]; then
