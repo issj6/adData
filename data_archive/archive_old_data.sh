@@ -245,22 +245,55 @@ export_data_to_csv_chunked() {
 delete_archived_data() {
     local archive_date=$1
     local expected_count=$2
+    local batch_size=${DELETE_BATCH_SIZE:-10000}
+    local total_deleted=0
+    local batch_deleted=1
+    local loop_count=0
+    local max_loops=${DELETE_MAX_LOOPS:-0} # 0 表示不限制
     
-    log_info "开始删除已归档的数据（预计: $expected_count 条）..."
+    log_info "开始分批删除已归档的数据（预计: $expected_count 条，批大小: $batch_size）..."
     
-    # 执行删除操作（错误写入日志）
-    mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
-        "$SOURCE_DB_DATABASE" -e "
-        DELETE FROM $SOURCE_TABLE_NAME 
-        WHERE track_time < '$archive_date 00:00:00'
-    " 2>>"$LOG_FILE"
+    while [ $batch_deleted -gt 0 ]; do
+        # 执行单批删除并读取本次删除的行数（同一连接内获取 ROW_COUNT）
+        batch_deleted=$(mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+            "$SOURCE_DB_DATABASE" -N -e "
+            DELETE FROM $SOURCE_TABLE_NAME 
+            WHERE track_time < '$archive_date 00:00:00'
+            LIMIT $batch_size;
+            SELECT ROW_COUNT();
+        " 2>>"$LOG_FILE" | tail -n 1 | tr -d '\r')
+        
+        if ! [[ "$batch_deleted" =~ ^[0-9]+$ ]]; then
+            log_error "读取单批删除行数失败: $batch_deleted"
+            return 1
+        fi
+        
+        if [ "$batch_deleted" -eq 0 ]; then
+            break
+        fi
+        
+        total_deleted=$(( total_deleted + batch_deleted ))
+        loop_count=$(( loop_count + 1 ))
+        log_info "本批删除: $batch_deleted，累计删除: $total_deleted"
+        
+        if [ "$max_loops" -gt 0 ] && [ "$loop_count" -ge "$max_loops" ]; then
+            log_warning "达到最大批次数 $max_loops，提前停止删除（累计: $total_deleted）"
+            break
+        fi
+        
+        # 可选：降低压力的小睡（设置 DELETE_BATCH_SLEEP 秒启用）
+        if [ -n "$DELETE_BATCH_SLEEP" ]; then
+            sleep "$DELETE_BATCH_SLEEP"
+        fi
+    done
     
-    if [ $? -eq 0 ]; then
-        log_success "数据删除完成（预计: $expected_count 条）"
+    if [ "$total_deleted" -eq "$expected_count" ]; then
+        log_success "分批删除完成，累计删除: $total_deleted（与预期一致）"
         return 0
     else
-        log_error "数据删除失败"
-        return 1
+        log_warning "分批删除完成，累计删除: $total_deleted，与预期($expected_count)不一致"
+        # 仍视作成功，避免任务中断；不一致信息已记录，供人工复核
+        return 0
     fi
 }
 
