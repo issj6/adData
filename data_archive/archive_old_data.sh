@@ -3,7 +3,7 @@
 # 数据归档脚本
 # 每日凌晨1点执行：导出14天前的数据为CSV并删除
 
-set -e
+set -eo pipefail
 
 # 导入数据库配置
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,7 +52,9 @@ mkdir -p "$SCRIPT_DIR/logs"
 
 # 日志函数
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+    local line="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "$line" >> "$LOG_FILE"
+    >&2 echo "$line"
 }
 
 log_info() {
@@ -89,19 +91,23 @@ check_database_connection() {
 check_archive_data() {
     log_info "检查14天前的数据量..."
     
-    # 计算14天前的日期
-    ARCHIVE_DATE=$(date -d '14 days ago' '+%Y-%m-%d')
-    log_info "归档日期cutoff: $ARCHIVE_DATE"
+    # 接收或计算14天前的日期
+    local archive_date="$1"
+    if [ -z "$archive_date" ]; then
+        archive_date=$(date -d '14 days ago' '+%Y-%m-%d')
+    fi
+    log_info "归档日期cutoff: $archive_date"
     
-    # 查询要归档的数据量
+    # 查询要归档的数据量（将错误写入日志，不吞错）
     RECORD_COUNT=$(mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         "$SOURCE_DB_DATABASE" -N -e "
         SELECT COUNT(*) 
         FROM $SOURCE_TABLE_NAME 
-        WHERE DATE(track_time) < '$ARCHIVE_DATE'
-    " 2>/dev/null || echo "0")
+        WHERE DATE(track_time) < '$archive_date'
+    " 2>>"$LOG_FILE" || echo "0")
     
     log_info "找到 $RECORD_COUNT 条需要归档的记录"
+    # 仅输出数字到stdout，供命令替换捕获
     echo "$RECORD_COUNT"
 }
 
@@ -123,7 +129,7 @@ export_data_to_csv() {
         FROM $SOURCE_TABLE_NAME 
         WHERE DATE(track_time) < '$archive_date'
         ORDER BY track_time
-    " | sed 's/\t/,/g' > "$csv_file"
+    " 2>>"$LOG_FILE" | sed 's/\t/,/g' > "$csv_file"
     
     if [ $? -eq 0 ] && [ -f "$csv_file" ]; then
         # 检查文件大小
@@ -131,11 +137,17 @@ export_data_to_csv() {
         log_success "数据导出完成: $csv_file (大小: $file_size)"
         
         # 验证导出的行数（减去表头）
-        local exported_lines=$(($(wc -l < "$csv_file") - 1))
+        local total_lines=$(wc -l < "$csv_file")
+        local exported_lines=$(( total_lines - 1 ))
+        if [ "$total_lines" -eq 0 ]; then
+            log_error "导出文件为空（无表头），视为导出失败"
+            return 1
+        fi
         log_info "导出行数: $exported_lines 条记录"
         
         if [ "$exported_lines" -ne "$record_count" ]; then
-            log_warning "导出行数($exported_lines)与预期($record_count)不匹配"
+            log_error "导出行数($exported_lines)与预期($record_count)不一致，停止删除以保证安全"
+            return 1
         fi
         
         echo "$csv_file"
@@ -149,22 +161,19 @@ export_data_to_csv() {
 # 删除已归档的数据
 delete_archived_data() {
     local archive_date=$1
+    local expected_count=$2
     
-    log_info "开始删除已归档的数据..."
+    log_info "开始删除已归档的数据（预计: $expected_count 条）..."
     
-    # 执行删除操作
+    # 执行删除操作（错误写入日志）
     mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
         "$SOURCE_DB_DATABASE" -e "
         DELETE FROM $SOURCE_TABLE_NAME 
         WHERE DATE(track_time) < '$archive_date'
-    "
+    " 2>>"$LOG_FILE"
     
     if [ $? -eq 0 ]; then
-        # 获取删除的行数
-        local deleted_count=$(mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
-            "$SOURCE_DB_DATABASE" -e "SELECT ROW_COUNT();" -N 2>/dev/null || echo "未知")
-        
-        log_success "数据删除完成，删除了 $deleted_count 条记录"
+        log_success "数据删除完成（预计: $expected_count 条）"
         return 0
     else
         log_error "数据删除失败"
@@ -226,8 +235,12 @@ main() {
     # 计算归档日期
     ARCHIVE_DATE=$(date -d '14 days ago' '+%Y-%m-%d')
     
-    # 检查要归档的数据量
-    RECORD_COUNT=$(check_archive_data)
+    # 检查要归档的数据量（仅捕获数字）
+    RECORD_COUNT=$(check_archive_data "$ARCHIVE_DATE")
+    if ! [[ "$RECORD_COUNT" =~ ^[0-9]+$ ]]; then
+        log_error "统计返回值异常（非纯数字）: $RECORD_COUNT"
+        exit 1
+    fi
     
     if [ "$RECORD_COUNT" -eq 0 ]; then
         log_info "没有需要归档的数据，任务结束"
@@ -244,8 +257,8 @@ main() {
         exit 1
     fi
     
-    # 删除已归档的数据
-    if delete_archived_data "$ARCHIVE_DATE"; then
+    # 删除已归档的数据（仅在导出成功且一致时执行）
+    if delete_archived_data "$ARCHIVE_DATE" "$RECORD_COUNT"; then
         log_success "数据归档任务完成"
         
         # 生成报告
