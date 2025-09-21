@@ -9,35 +9,13 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# 环境变量优先：仅在缺失时从 .env 回填
-ENV_FILE="$PROJECT_ROOT/.env"
-load_if_unset() {
-    local var_name="$1"
-    local key="$1"
-    if [ -z "${!var_name}" ] && [ -f "$ENV_FILE" ]; then
-        local line
-        line=$(grep -E "^${key}=" "$ENV_FILE" | tail -n1 || true)
-        if [ -n "$line" ]; then
-            local value="${line#*=}"
-            value="$(printf '%s' "$value" | sed 's/[[:space:]]*$//')"
-            if [ -z "${!var_name}" ] && [ -n "$value" ]; then
-                export "$var_name=$value"
-            fi
-        fi
-    fi
-}
-
-for k in SOURCE_DB_HOST SOURCE_DB_PORT SOURCE_DB_USER SOURCE_DB_PASSWORD SOURCE_DB_DATABASE SOURCE_TABLE_NAME; do
-    load_if_unset "$k"
-done
-
-# 设置默认值
-SOURCE_DB_HOST=${SOURCE_DB_HOST:-"222.186.41.7"}
-SOURCE_DB_PORT=${SOURCE_DB_PORT:-3316}
-SOURCE_DB_USER=${SOURCE_DB_USER:-"root"}
-SOURCE_DB_PASSWORD=${SOURCE_DB_PASSWORD:-"Yyy443556.0"}
-SOURCE_DB_DATABASE=${SOURCE_DB_DATABASE:-"ad_router"}
-SOURCE_TABLE_NAME=${SOURCE_TABLE_NAME:-"request_log"}
+# 固定数据库配置（忽略环境变量与 .env）
+SOURCE_DB_HOST="103.36.221.200"
+SOURCE_DB_PORT=3316
+SOURCE_DB_USER="root"
+SOURCE_DB_PASSWORD="Yyy443556.0"
+SOURCE_DB_DATABASE="ad_router"
+SOURCE_TABLE_NAME="request_log"
 
 # 确保在cron环境下能找到系统命令
 export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
