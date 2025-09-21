@@ -241,50 +241,120 @@ export_data_to_csv_chunked() {
     return 0
 }
 
-# 删除已归档的数据
+# 删除已归档的数据（按天窗口 + 无排序小批量 + 短锁等待 + 退避重试）
 delete_archived_data() {
     local archive_date=$1
     local expected_count=$2
     local batch_size=${DELETE_BATCH_SIZE:-10000}
+    local min_batch_size=${DELETE_MIN_BATCH_SIZE:-500}
+    local lock_wait_timeout=${DELETE_LOCK_WAIT_TIMEOUT:-5}
+    local retry_max=${DELETE_RETRY_MAX:-5}
     local total_deleted=0
-    local batch_deleted=1
     local loop_count=0
     local max_loops=${DELETE_MAX_LOOPS:-0} # 0 表示不限制
     
-    log_info "开始分批删除已归档的数据（预计: $expected_count 条，批大小: $batch_size）..."
+    log_info "开始按天窗口分批删除已归档的数据（预计: $expected_count 条，初始批大小: $batch_size）..."
     
-    while [ $batch_deleted -gt 0 ]; do
-        # 执行单批删除并读取本次删除的行数（同一连接内获取 ROW_COUNT）
-        batch_deleted=$(mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
-            "$SOURCE_DB_DATABASE" -N -e "
-            DELETE FROM $SOURCE_TABLE_NAME 
-            WHERE track_time < '$archive_date 00:00:00'
-            LIMIT $batch_size;
-            SELECT ROW_COUNT();
-        " 2>>"$LOG_FILE" | tail -n 1 | tr -d '\r')
+    # 计算需要处理的起始天（小于 cutoff 的最早一天）
+    local min_day
+    min_day=$(mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+        "$SOURCE_DB_DATABASE" -sN -e "
+        SELECT LEFT(MIN(track_time),10)
+        FROM $SOURCE_TABLE_NAME
+        WHERE track_time < '$archive_date 00:00:00'" 2>>"$LOG_FILE" | tr -d '\r') || true
+    
+    if [ -z "$min_day" ] || ! [[ "$min_day" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        log_warning "无需删除：未找到早于 $archive_date 的数据"
+        return 0
+    fi
+    
+    local cur_day="$min_day"
+    
+    while [ "$(date -d "$cur_day" +%s)" -lt "$(date -d "$archive_date" +%s)" ]; do
+        local next_day
+        next_day=$(date -d "$cur_day +1 day" '+%Y-%m-%d')
         
-        if ! [[ "$batch_deleted" =~ ^[0-9]+$ ]]; then
-            log_error "读取单批删除行数失败: $batch_deleted"
-            return 1
-        fi
+        local day_deleted=1
+        local day_total=0
+        local current_batch_size=$batch_size
+        local retry_count=0
         
-        if [ "$batch_deleted" -eq 0 ]; then
-            break
-        fi
+        log_info "开始删除日期: $cur_day 的数据（窗口: [$cur_day, $next_day)）"
         
-        total_deleted=$(( total_deleted + batch_deleted ))
-        loop_count=$(( loop_count + 1 ))
-        log_info "本批删除: $batch_deleted，累计删除: $total_deleted"
+        while true; do
+            # 执行单批删除，设置会话级短锁等待，避免长时间阻塞
+            local output
+            output=$(mysql --skip-ssl -h "$SOURCE_DB_HOST" -P "$SOURCE_DB_PORT" -u "$SOURCE_DB_USER" -p"$SOURCE_DB_PASSWORD" \
+                "$SOURCE_DB_DATABASE" -sN -e "
+                SET SESSION innodb_lock_wait_timeout=$lock_wait_timeout;
+                DELETE FROM $SOURCE_TABLE_NAME
+                WHERE track_time >= '$cur_day 00:00:00' AND track_time < '$next_day 00:00:00'
+                LIMIT $current_batch_size;
+                SELECT ROW_COUNT();
+            " 2>>"$LOG_FILE")
+            
+            local ec=$?
+            local rc
+            rc=$(printf '%s' "$output" | tail -n 1 | tr -d '\r')
+            
+            if [ $ec -ne 0 ]; then
+                # 失败：可能锁等待超时或其他错误，缩小批量并重试最多 retry_max 次
+                retry_count=$(( retry_count + 1 ))
+                if [ $current_batch_size -gt $min_batch_size ]; then
+                    current_batch_size=$(( current_batch_size / 2 ))
+                    if [ $current_batch_size -lt $min_batch_size ]; then
+                        current_batch_size=$min_batch_size
+                    fi
+                fi
+                
+                if [ $retry_count -ge $retry_max ]; then
+                    log_warning "日期 $cur_day 连续失败 $retry_count 次，跳过当日剩余记录（当前批大小: $current_batch_size）"
+                    break
+                fi
+                
+                if [ -n "$DELETE_BATCH_SLEEP" ]; then
+                    sleep "$DELETE_BATCH_SLEEP"
+                else
+                    sleep 1
+                fi
+                continue
+            fi
+            
+            if ! [[ "$rc" =~ ^[0-9]+$ ]]; then
+                # 未取得数字行数（极少数情况下 stdout 为空）
+                retry_count=$(( retry_count + 1 ))
+                log_error "读取单批删除行数失败: $rc（日期: $cur_day）"
+                if [ $retry_count -ge $retry_max ]; then
+                    log_warning "日期 $cur_day 连续读取失败 $retry_count 次，跳过当日剩余记录"
+                    break
+                fi
+                continue
+            fi
+            
+            day_deleted=$rc
+            if [ "$day_deleted" -eq 0 ]; then
+                # 当日已删尽
+                break
+            fi
+            
+            day_total=$(( day_total + day_deleted ))
+            total_deleted=$(( total_deleted + day_deleted ))
+            loop_count=$(( loop_count + 1 ))
+            retry_count=0
+            log_info "日期 $cur_day 本批删除: $day_deleted，日期累计: $day_total，总累计: $total_deleted，当前批大小: $current_batch_size"
+            
+            if [ "$max_loops" -gt 0 ] && [ "$loop_count" -ge "$max_loops" ]; then
+                log_warning "达到最大批次数 $max_loops，提前停止删除（累计: $total_deleted）"
+                break 2
+            fi
+            
+            if [ -n "$DELETE_BATCH_SLEEP" ]; then
+                sleep "$DELETE_BATCH_SLEEP"
+            fi
+        done
         
-        if [ "$max_loops" -gt 0 ] && [ "$loop_count" -ge "$max_loops" ]; then
-            log_warning "达到最大批次数 $max_loops，提前停止删除（累计: $total_deleted）"
-            break
-        fi
-        
-        # 可选：降低压力的小睡（设置 DELETE_BATCH_SLEEP 秒启用）
-        if [ -n "$DELETE_BATCH_SLEEP" ]; then
-            sleep "$DELETE_BATCH_SLEEP"
-        fi
+        log_info "日期 $cur_day 删除完成，共: $day_total"
+        cur_day="$next_day"
     done
     
     if [ "$total_deleted" -eq "$expected_count" ]; then
@@ -292,7 +362,6 @@ delete_archived_data() {
         return 0
     else
         log_warning "分批删除完成，累计删除: $total_deleted，与预期($expected_count)不一致"
-        # 仍视作成功，避免任务中断；不一致信息已记录，供人工复核
         return 0
     fi
 }
