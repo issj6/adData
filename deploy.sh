@@ -24,6 +24,38 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# 确保在脚本所在目录作为构建上下文
+cd_to_project_root() {
+    local script_dir
+    script_dir="$(cd "$(dirname "$0")" && pwd)"
+    cd "$script_dir"
+    log_info "项目根目录: $(pwd)"
+}
+
+# 部署后校验：容器内脚本应包含分批删除的 LIMIT 关键字
+verify_container_script() {
+    log_info "校验容器内归档脚本是否为最新（包含批量删除）..."
+    if ! docker compose ps | grep -q "ad-data-app"; then
+        log_error "容器未启动或服务名不匹配 ad-data-app"
+        exit 1
+    fi
+
+    if ! docker compose exec -T ad-data-app bash -lc "test -f /app/data_archive/archive_old_data.sh"; then
+        log_error "容器内未找到 /app/data_archive/archive_old_data.sh"
+        exit 1
+    fi
+
+    # 要求脚本中存在 LIMIT，避免整表删除
+    if docker compose exec -T ad-data-app bash -lc "grep -q 'LIMIT' /app/data_archive/archive_old_data.sh"; then
+        log_success "校验通过：发现 LIMIT，已启用分批删除"
+    else
+        log_error "校验失败：容器内脚本未包含 LIMIT，可能仍为旧版本，已中止"
+        # 打印关键信息辅助排查
+        docker compose exec -T ad-data-app bash -lc "grep -n 'DELETE\\|LIMIT' /app/data_archive/archive_old_data.sh || true"
+        exit 1
+    fi
+}
+
 # 检查Docker依赖
 check_docker() {
     if ! command -v docker &> /dev/null; then
@@ -87,15 +119,16 @@ deploy() {
     
     # 检查依赖
     check_docker
+    cd_to_project_root
     check_env
     check_archive_directories
     
     # 构建并启动服务
-    log_info "构建Docker镜像..."
-    docker compose build
+    log_info "构建Docker镜像（不使用缓存，拉取最新基础镜像）..."
+    docker compose build --no-cache --pull
     
-    log_info "启动服务..."
-    docker compose up -d
+    log_info "启动服务（强制重新创建容器）..."
+    docker compose up -d --force-recreate --remove-orphans
     
     # 等待服务启动
     log_info "等待服务启动..."
@@ -104,6 +137,9 @@ deploy() {
     # 检查服务状态
     if docker compose ps | grep -q "Up"; then
         log_success "部署成功！"
+
+        # 部署后立即校验容器内脚本是否为最新
+        verify_container_script
         echo ""
         log_info "访问地址:"
         echo "  Web界面: http://localhost:3300"
@@ -126,7 +162,7 @@ deploy() {
 # 停止服务
 stop() {
     log_info "停止广告数据聚合系统..."
-    docker compose down
+    docker compose down --remove-orphans
     log_success "服务已停止"
 }
 
